@@ -8,15 +8,12 @@ app.run()
 
 // MARK: - 极简内置本地化管理
 struct Localized {
-    // 检测首选语言是否为中文（包括 zh-Hans, zh-Hant, zh-HK 等）
     static var isChinese: Bool {
         if let lang = Locale.preferredLanguages.first {
             return lang.hasPrefix("zh")
         }
         return false
     }
-    
-    // 根据系统语言返回对应的文本
     static func text(zh: String, en: String) -> String {
         return isChinese ? zh : en
     }
@@ -31,16 +28,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
     var isBreak = false
 
     // MARK: - 持久化配置项
+
     var workMin: Int {
         get { UserDefaults.standard.integer(forKey: "workMin") == 0 ? 25 : UserDefaults.standard.integer(forKey: "workMin") }
         set { UserDefaults.standard.set(newValue, forKey: "workMin") }
     }
-    
+
     var breakMin: Int {
         get { UserDefaults.standard.integer(forKey: "breakMin") == 0 ? 5 : UserDefaults.standard.integer(forKey: "breakMin") }
         set { UserDefaults.standard.set(newValue, forKey: "breakMin") }
     }
-    
+
     var showSeconds: Bool {
         get {
             if UserDefaults.standard.object(forKey: "showSeconds") == nil { return true }
@@ -48,12 +46,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         }
         set { UserDefaults.standard.set(newValue, forKey: "showSeconds") }
     }
-    
+
     var totalCycles: Int {
         get { UserDefaults.standard.integer(forKey: "totalCycles") == 0 ? 4 : UserDefaults.standard.integer(forKey: "totalCycles") }
         set { UserDefaults.standard.set(newValue, forKey: "totalCycles") }
     }
-    
+
     var currentCyclesLeft: Int {
         get {
             if UserDefaults.standard.object(forKey: "currentCyclesLeft") == nil { return totalCycles }
@@ -61,7 +59,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         }
         set { UserDefaults.standard.set(newValue, forKey: "currentCyclesLeft") }
     }
-    
+
     var autoAdvance: Bool {
         get {
             if UserDefaults.standard.object(forKey: "autoAdvance") == nil { return true }
@@ -79,8 +77,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         refreshButton()
     }
 
-    // MARK: - NSUserNotificationCenter Delegate
-    func userNotificationCenter(_ center: NSUserNotificationCenter, shouldPresent notification: NSUserNotification) -> Bool {
+    // MARK: - NSUserNotificationCenterDelegate
+    // 确保 App 在前台时通知也能弹出
+    func userNotificationCenter(_ center: NSUserNotificationCenter,
+                                 shouldPresent notification: NSUserNotification) -> Bool {
         return true
     }
 
@@ -89,38 +89,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
     func rebuildMenu() {
         let m = NSMenu()
 
-        // 1. 顶部状态信息面板
         let stateTitle: String
         if isRunning {
             stateTitle = isBreak ? Localized.text(zh: "▓ 休憩中", en: "▓ On Break") : Localized.text(zh: "● 专注中", en: "● Focusing")
         } else {
             stateTitle = Localized.text(zh: "○ 未开始", en: "○ Idle")
         }
-        
+
         m.addItem(sectionLabel("\(stateTitle)"))
-        
         let cyclesLeftStr = Localized.text(zh: "⏱ 剩余周期: \(currentCyclesLeft) / \(totalCycles)", en: "⏱ Cycles Left: \(currentCyclesLeft) / \(totalCycles)")
         m.addItem(sectionLabel(cyclesLeftStr))
         m.addItem(.separator())
 
-        // 2. 控制开关
         toggleItem = item(toggleTitle(), key: "s", #selector(onToggle))
         m.addItem(toggleItem)
         m.addItem(item(Localized.text(zh: "重置当前阶段", en: "Reset Current Phase"), key: "r", #selector(onReset)))
         m.addItem(item(Localized.text(zh: "重置全部周期", en: "Reset All Cycles"), key: "R", #selector(onResetCycles)))
         m.addItem(.separator())
 
-        // 3. 阶段快捷跳转
         m.addItem(item(Localized.text(zh: "跳过休息阶段", en: "Skip Break Phase"), key: "1", #selector(onJumpWork)))
         m.addItem(item(Localized.text(zh: "跳过工作阶段", en: "Skip Focus Phase"), key: "2", #selector(onJumpBreak)))
         m.addItem(.separator())
 
-        // 4. 预设时长
+        // 预设时长
         let presetsParent = NSMenuItem(title: Localized.text(zh: "预设时长", en: "Presets"), action: nil, keyEquivalent: "")
         let psub = NSMenu()
         [
-            (Localized.text(zh: "经典番茄    25 / 5", en: "Pomodoro      25 / 5"),  25, 5),
-            (Localized.text(zh: "短冲刺      15 / 3", en: "Short Sprint  15 / 3"),  15, 3),
+            (Localized.text(zh: "经典番茄    25 / 5",  en: "Pomodoro      25 / 5"),  25, 5),
+            (Localized.text(zh: "短冲刺      15 / 3",  en: "Short Sprint  15 / 3"),  15, 3),
             (Localized.text(zh: "长专注      50 / 10", en: "Long Focus    50 / 10"), 50, 10),
             (Localized.text(zh: "超长深工    90 / 20", en: "Deep Work     90 / 20"), 90, 20)
         ].forEach { title, w, b in
@@ -132,7 +128,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         presetsParent.submenu = psub
         m.addItem(presetsParent)
 
-        // 5. 自定义时长
+        // 自定义时长
         let customParent = NSMenuItem(title: Localized.text(zh: "自定义时长", en: "Custom Duration"), action: nil, keyEquivalent: "")
         let csub = NSMenu()
         csub.addItem(sectionLabel(Localized.text(zh: "工作时长", en: "Focus Duration")))
@@ -153,7 +149,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         customParent.submenu = csub
         m.addItem(customParent)
 
-        // 6. 周期数量设置
+        // 周期数量
         let cyclesParent = NSMenuItem(title: Localized.text(zh: "周期数量", en: "Cycle Count"), action: nil, keyEquivalent: "")
         let cyclesSub = NSMenu()
         [1, 2, 3, 4, 5, 6, 7, 8].forEach { v in
@@ -165,20 +161,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         cyclesParent.submenu = cyclesSub
         m.addItem(cyclesParent)
 
-        // 7. 通用设置
+        // 通用设置
         let settingsParent = NSMenuItem(title: Localized.text(zh: "设置", en: "Settings"), action: nil, keyEquivalent: "")
         let ssub = NSMenu()
-        
+
         let autoItem = NSMenuItem(title: Localized.text(zh: "自动开始下一阶段", en: "Auto Advance Phase"), action: #selector(onToggleAutoAdvance), keyEquivalent: "")
         autoItem.state = autoAdvance ? .on : .off
         autoItem.target = self
         ssub.addItem(autoItem)
-        
+
         let precItem = NSMenuItem(title: Localized.text(zh: "菜单栏显示秒数", en: "Show Seconds in Menu Bar"), action: #selector(onTogglePrecision), keyEquivalent: "")
         precItem.state = showSeconds ? .on : .off
         precItem.target = self
         ssub.addItem(precItem)
-        
+
         settingsParent.submenu = ssub
         m.addItem(settingsParent)
 
@@ -196,7 +192,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         stop(); remainingSeconds = 0
         rebuildMenu(); refreshButton()
     }
-    
+
     @objc func onResetCycles() {
         stop(); remainingSeconds = 0
         currentCyclesLeft = totalCycles
@@ -216,26 +212,83 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         rebuildMenu(); start()
     }
 
+    // 预设：始终中断并重置（属于"换套路"的大变更，符合用户预期）
     @objc func onPreset(_ sender: NSMenuItem) {
         guard let v = sender.representedObject as? [Int], v.count == 2 else { return }
         workMin = v[0]; breakMin = v[1]
         stop(); remainingSeconds = 0; isBreak = false
+        currentCyclesLeft = totalCycles
         rebuildMenu(); refreshButton()
     }
 
+    // MARK: 动态调整工作时长
+    // 策略：
+    //   - 如果当前正处于「工作阶段」running 中，按比例缩放剩余时间，保持进度感。
+    //     新剩余 = round(剩余 / 旧总时长 * 新总时长)，最少保留 1 秒避免立即触发结束。
+    //   - 如果当前处于「休息阶段」running 或 paused，工作时长变更不影响本轮，下轮生效。
+    //   - 如果当前未运行（idle），直接更新显示。
     @objc func onSetWork(_ sender: NSMenuItem) {
-        workMin = sender.tag; stop(); remainingSeconds = 0
+        let newMin = sender.tag
+        guard newMin != workMin else { return }
+
+        if isRunning && !isBreak && remainingSeconds > 0 {
+            // 等比缩放剩余时间
+            let oldTotal = workMin * 60
+            let newTotal = newMin * 60
+            let scaled = Int(round(Double(remainingSeconds) / Double(oldTotal) * Double(newTotal)))
+            workMin = newMin
+            remainingSeconds = max(1, min(scaled, newTotal))
+        } else {
+            workMin = newMin
+            // 若当前处于 idle 或 paused 且未计时的工作阶段，重置显示时间
+            if !isRunning && !isBreak {
+                remainingSeconds = 0
+            }
+        }
         rebuildMenu(); refreshButton()
     }
 
+    // MARK: 动态调整休息时长
+    // 同上，对休息阶段做等比缩放；工作阶段中修改休息时长不影响当前倒计时。
     @objc func onSetBreak(_ sender: NSMenuItem) {
-        breakMin = sender.tag; stop(); remainingSeconds = 0
+        let newMin = sender.tag
+        guard newMin != breakMin else { return }
+
+        if isRunning && isBreak && remainingSeconds > 0 {
+            let oldTotal = breakMin * 60
+            let newTotal = newMin * 60
+            let scaled = Int(round(Double(remainingSeconds) / Double(oldTotal) * Double(newTotal)))
+            breakMin = newMin
+            remainingSeconds = max(1, min(scaled, newTotal))
+        } else {
+            breakMin = newMin
+            if !isRunning && isBreak {
+                remainingSeconds = 0
+            }
+        }
         rebuildMenu(); refreshButton()
     }
-    
+
+    // MARK: 动态调整总周期数
+    // 策略：
+    //   - 新值 > 旧值：追加差值到 currentCyclesLeft（增加剩余周期）。
+    //   - 新值 < 旧值：按比例缩减 currentCyclesLeft，但至少保留 1 个周期，
+    //     避免正在运行时直接触发"全部完成"逻辑。
+    //   - 当前未运行时，currentCyclesLeft 直接等于新 totalCycles。
     @objc func onSetTotalCycles(_ sender: NSMenuItem) {
-        totalCycles = sender.tag
-        currentCyclesLeft = sender.tag
+        let newTotal = sender.tag
+        guard newTotal != totalCycles else { return }
+
+        let oldTotal = totalCycles
+        totalCycles = newTotal
+
+        if isRunning || remainingSeconds > 0 {
+            let delta = newTotal - oldTotal
+            let newLeft = currentCyclesLeft + delta
+            currentCyclesLeft = max(1, newLeft)
+        } else {
+            currentCyclesLeft = newTotal
+        }
         rebuildMenu(); refreshButton()
     }
 
@@ -243,7 +296,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         showSeconds.toggle()
         rebuildMenu(); refreshButton()
     }
-    
+
     @objc func onToggleAutoAdvance() {
         autoAdvance.toggle()
         rebuildMenu()
@@ -258,7 +311,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
             remainingSeconds = (isBreak ? breakMin : workMin) * 60
         }
         isRunning = true
-        
         timer = Timer.scheduledTimer(timeInterval: 1.0, target: self,
                                      selector: #selector(tick), userInfo: nil, repeats: true)
         RunLoop.main.add(timer!, forMode: .common)
@@ -286,24 +338,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
 
     func timerDone() {
         stop()
-        
+
         let wasBreak = isBreak
-        
-        // 倒计时结束时的多语言通知
-        let notifTitle = wasBreak ? Localized.text(zh: "工作时间开始 📌", en: "Focus Session Started 📌") : Localized.text(zh: "工作时间结束 🔔", en: "Focus Session Finished 🔔")
-        let notifSubtitle = wasBreak ? Localized.text(zh: "准备好，开始新一轮的专注！", en: "Get ready to focus on your task!") : Localized.text(zh: "干得漂亮，现在休息一下吧。", en: "Great job! Time to take a break.")
-        
-        sendOldNotification(title: notifTitle, subtitle: notifSubtitle)
-        
+
+        let notifTitle    = wasBreak
+            ? Localized.text(zh: "工作时间开始 📌", en: "Focus Session Started 📌")
+            : Localized.text(zh: "工作时间结束 🔔", en: "Focus Session Finished 🔔")
+        let notifSubtitle = wasBreak
+            ? Localized.text(zh: "准备好，开始新一轮的专注！", en: "Get ready to focus on your task!")
+            : Localized.text(zh: "干得漂亮，现在休息一下吧。", en: "Great job! Time to take a break.")
+
+        sendNotification(title: notifTitle, body: notifSubtitle)
+
         if !wasBreak {
             currentCyclesLeft = max(0, currentCyclesLeft - 1)
         }
-        
+
         if currentCyclesLeft == 0 {
             let allDoneTitle = Localized.text(zh: "🎉 恭喜！全部周期已完成", en: "🎉 Congratulations! All cycles completed")
-            let allDoneSub = Localized.text(zh: "您已完成了设定的所有专注目标。", en: "You have achieved all your focus goals.")
-            sendOldNotification(title: allDoneTitle, subtitle: allDoneSub)
-            
+            let allDoneSub   = Localized.text(zh: "您已完成了设定的所有专注目标。", en: "You have achieved all your focus goals.")
+            sendNotification(title: allDoneTitle, body: allDoneSub)
+
             currentCyclesLeft = totalCycles
             isBreak = false
             remainingSeconds = 0
@@ -312,10 +367,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
             isBreak.toggle()
             remainingSeconds = 0
             rebuildMenu(); refreshButton()
-            
-            if autoAdvance {
-                start()
-            }
+
+            if autoAdvance { start() }
         }
     }
 
@@ -323,44 +376,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
 
     func refreshButton() {
         guard let btn = statusItem?.button else { return }
-        
         btn.image = nil
         btn.imagePosition = .noImage
-        
-        let fullText: String
+
+        let seconds: Int
         if remainingSeconds > 0 {
-            fullText = showSeconds ? formatSec(remainingSeconds) : formatMin(remainingSeconds)
+            seconds = remainingSeconds
         } else {
-            let defaultSeconds = (isBreak ? breakMin : workMin) * 60
-            fullText = showSeconds ? formatSec(defaultSeconds) : formatMin(defaultSeconds)
+            seconds = (isBreak ? breakMin : workMin) * 60
         }
-        
-        let font = NSFont.monospacedDigitSystemFont(ofSize: 0, weight: .regular)
-        let attrStr = NSAttributedString(string: fullText, attributes: [.font: font])
-        
-        btn.attributedTitle = attrStr
+
+        let fullText = showSeconds ? formatSec(seconds) : formatMin(seconds)
+        let font     = NSFont.monospacedDigitSystemFont(ofSize: 0, weight: .regular)
+        btn.attributedTitle = NSAttributedString(string: fullText, attributes: [.font: font])
     }
 
     func formatSec(_ s: Int) -> String { String(format: "%d:%02d", s / 60, s % 60) }
-
     func formatMin(_ s: Int) -> String { "\((s + 59) / 60)" }
 
     func toggleTitle() -> String {
-        if isRunning {
-            return Localized.text(zh: "暂停", en: "Pause")
-        } else {
-            return remainingSeconds > 0 ? Localized.text(zh: "继续", en: "Resume") : Localized.text(zh: "开始", en: "Start")
-        }
+        if isRunning { return Localized.text(zh: "暂停", en: "Pause") }
+        return remainingSeconds > 0
+            ? Localized.text(zh: "继续", en: "Resume")
+            : Localized.text(zh: "开始", en: "Start")
     }
 
-    // MARK: - 兼容旧版系统的通知组件 (NSUserNotification)
-    func sendOldNotification(title: String, subtitle: String) {
-        let notification = NSUserNotification()
-        notification.title = title
-        notification.informativeText = subtitle
-        notification.soundName = "Ping"
-        
+    // MARK: - 通知 + 声音
+    // NSUserNotification 负责弹窗显示，NSSound 直接播放系统音效补声音
+    // （NSUserNotification.soundName 在 macOS 12+ 已被系统静默忽略）
+    func sendNotification(title: String, body: String) {
+        // 1. 弹窗通知
+        let notification          = NSUserNotification()
+        notification.title        = title
+        notification.informativeText = body
         NSUserNotificationCenter.default.deliver(notification)
+
+        // 2. 独立播放声音，不依赖通知框架
+        NSSound(named: "Ping")?.play()
     }
 
     // MARK: - Helpers
