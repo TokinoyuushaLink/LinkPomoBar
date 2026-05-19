@@ -108,7 +108,8 @@ cat > "$CONTENTS/Info.plist" << 'PLIST'
     <key>CFBundleName</key>                  <string>LinkPomobar</string>
     <key>CFBundleDisplayName</key>           <string>LinkPomobar</string>
     <key>CFBundlePackageType</key>           <string>APPL</string>
-    <key>CFBundleShortVersionString</key>    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>    <string>1.0.1</string>
+    <key>CFBundleVersion</key>               <string>2</string>
     <key>LSMinimumSystemVersion</key>        <string>12.0</string>
     <key>LSUIElement</key>                   <true/>
     <key>NSPrincipalClass</key>              <string>NSApplication</string>
