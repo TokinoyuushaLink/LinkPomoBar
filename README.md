@@ -12,5 +12,6 @@
 编译：
 ```
 chmod +x ./build.sh
+./build.sh
 ```
 自动生成图标并打包进app里
